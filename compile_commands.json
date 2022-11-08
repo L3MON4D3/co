@@ -1,0 +1,42 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-pedantic",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I",
+      "include",
+      "-g",
+      "-fsanitize=address",
+      "-o",
+      "build/graph.o",
+      "src/graph.cpp"
+    ],
+    "directory": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1",
+    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/src/graph.cpp",
+    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/build/graph.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-pedantic",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I",
+      "include",
+      "-g",
+      "-fsanitize=address",
+      "-o",
+      "build/main.o",
+      "src/main.cpp"
+    ],
+    "directory": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1",
+    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/src/main.cpp",
+    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/build/main.o"
+  }
+]
