@@ -2,6 +2,7 @@
   {
     "arguments": [
       "/usr/bin/g++",
+      "-std=c++20",
       "-c",
       "-pedantic",
       "-Wall",
@@ -22,6 +23,7 @@
   {
     "arguments": [
       "/usr/bin/g++",
+      "-std=c++20",
       "-c",
       "-pedantic",
       "-Wall",
@@ -38,5 +40,62 @@
     "directory": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1",
     "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/src/main.cpp",
     "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/build/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-c",
+      "-pedantic",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I",
+      "include",
+      "-g",
+      "-fsanitize=address",
+      "-o",
+      "build/ecma.o",
+      "src/ecma.cpp"
+    ],
+    "directory": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1",
+    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/src/ecma.cpp",
+    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/build/ecma.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-std=c++20",
+      "build/graph.o",
+      "build/main.o",
+      "build/ecma.o",
+      "-g",
+      "-fsanitize=address",
+      "-o",
+      "CMA",
+      "include/ecma.hpp"
+    ],
+    "directory": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1",
+    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/include/ecma.hpp",
+    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/CMA"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-std=c++20",
+      "build/graph.o",
+      "build/main.o",
+      "build/ecma.o",
+      "-g",
+      "-fsanitize=address",
+      "-o",
+      "CMA",
+      "include/graph.hpp"
+    ],
+    "directory": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1",
+    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/include/graph.hpp",
+    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/CMA"
   }
 ]
