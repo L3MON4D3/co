@@ -24,9 +24,6 @@ public:
 	Node *phi;
 	Node *rho;
 
-	// distance from root.
-	distance root_dist;
-
 	// still useful for visualization, maybe omit once the algorithm works.
 	ED::NodeId id;
 

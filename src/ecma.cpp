@@ -9,8 +9,6 @@ Node::Node(ED::NodeId id)
 	: mu{this},
 	  phi{this},
 	  rho{this},
-	  // after initialization, the node is the root of its own tree.
-	  root_dist{0},
 	  id{id},
 	  neighbors{} {}
 
