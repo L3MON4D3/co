@@ -87,4 +87,41 @@ void Graph::print_dot(std::ostream &s) {
 	s << "}" << std::endl;
 }
 
+RootPath::RootPath(const Node &n)
+	: current{&n},
+	  // apply mu next.
+	  next{Function::mu} { }
+
+const Node &RootPath::operator*() const {
+	return *current;
+}
+
+bool RootPath::operator==(const Sentinel &) const {
+	// if mu(x) == phi(x) == x, we are at the root.
+	return current->mu == current && current->phi == current;
+}
+
+RootPath &RootPath::operator++() {
+	// advance, and swap functions.
+	switch(next) {
+		case Function::mu:
+			current = current->mu;
+			next = Function::phi;
+			break;
+		case Function::phi:
+			current = current->phi;
+			next = Function::mu;
+			break;
+	}
+
+	return *this;
+}
+
+void ecma(ED::Graph &g_ed) {
+	// construct ECMA-graph.
+	Graph g(g_ed);
+
+
+}
+
 }

@@ -60,7 +60,7 @@ public:
 	using difference_type = std::ptrdiff_t;
 	using value_type = const Node;
 
-	RootPath(Node);
+	RootPath(const Node &);
 	const Node &operator*() const;
 
 	class Sentinel{};
@@ -72,7 +72,7 @@ public:
 
 private:
 	// store current node.
-	Node *current;
+	const Node *current;
 
 	// store next function that is applied (alternate mu and phi).
 	enum Function {mu, phi};
