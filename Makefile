@@ -1,10 +1,10 @@
 CXX=g++ -std=c++20
-CXXFLAGS= -pedantic -Wall -Wextra -Werror -I include -g -fconcepts-diagnostics-depth=4
+CXXFLAGS=-O2 -pedantic -Wall -Wextra -Werror -I include -g -fconcepts-diagnostics-depth=4
 CXXASAN=-fsanitize=address
 
 LDFLAGS=-g
 LDASAN=-fsanitize=address
-OBJECTS=build/graph.o build/main.o build/ecma.o
+OBJECTS=build/graph.o build/main.o build/ecma.o build/path_iterators.o
 HEADERS=$(wildcard include/*.hpp)
 
 ./build/%.o: src/%.cpp Makefile $(HEADERS)

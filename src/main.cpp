@@ -12,7 +12,6 @@ int main(int argc, char **argv) {
 	}
 	
 	std::fstream input_file_graph{argv[2]};
-	ED::Graph const g1 = ED::Graph::read_dimacs(input_file_graph);
-	ECMA::Graph g2(g1);
-	g2.print_dot(std::cout);
+	const ED::Graph g1 = ED::Graph::read_dimacs(input_file_graph);
+	ECMA::ecma(g1);
 }
