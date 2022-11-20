@@ -312,6 +312,11 @@ void ecma(const ED::Graph &g_ed) {
 
 	// potential outer, unscanned nodes, will be covered in next iteration.
 	// (use set to avoid inserting a node twice)
+	// We have to append:
+	// - the new outer node in grow
+	// - (at least) the trees of x and y in augment
+	// - (at least) the new blossom in shrink (since there might be new inner
+	// nodes, that became outer).
 	std::unordered_set<Node *> next_nodes;
 
 	// jump back here if we haven't handled all nodes yet.
@@ -405,6 +410,10 @@ void ecma(const ED::Graph &g_ed) {
 		next_nodes.clear();
 		goto redo;
 	}
+
+	// assert there are no leftover outer, unscanned nodes.
+	for (Node *n : all_nodes)
+		assert((n->state()==NodeState::outer && n->scanned==true) || n->state() != NodeState::outer);
 
 	g.capture_forest();
 
