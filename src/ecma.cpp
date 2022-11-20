@@ -13,7 +13,7 @@
 #include <sstream>
 #include <filesystem>
 
-#include <unordered_map>
+#include <unordered_set>
 
 namespace ECMA {
 
@@ -347,13 +347,17 @@ void ecma(const ED::Graph &g_ed) {
 					// shrink
 					shrink(x,y,r);
 					
-					// create hashmap of all nodes on [x,r] and [y,r]
-					std::unordered_map<Node *, bool> xr_yr_nodes;
+					// set rho for all nodes in the blossom.
+
+					// create hashmap of all nodes on [x,r] and [y,r] (to
+					// quickly query whether rho(v) is on them, and should now
+					// point to r)
+					std::unordered_set<Node *> xr_yr_nodes;
 					for (NodePath pxr(x,r); pxr != NodePath::Sentinel(); ++pxr)
 						// get iterator element, then get its address.
-						xr_yr_nodes.insert({&(*pxr), true});
+						xr_yr_nodes.insert(&(*pxr));
 					for (NodePath pyr(y,r); pyr != NodePath::Sentinel(); ++pyr)
-						xr_yr_nodes.insert({&(*pyr), true});
+						xr_yr_nodes.insert(&(*pyr));
 
 					auto [shrink_nodes_iter, shrink_nodes_end] = g.nodes_begin_end();
 					for (; shrink_nodes_iter != shrink_nodes_end; ++shrink_nodes_iter) {
