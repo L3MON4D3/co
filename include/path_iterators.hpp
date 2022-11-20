@@ -28,6 +28,27 @@ private:
 	Function next;
 };
 
+// this can be used if only the blossoms/the root, and not the entire path, is interesting.
+// it will start at an outer node, and first follow rho, jumping to the base of
+// its blossom (potentially itself), then follow mu (to an inner node), then
+// phi (to an outer node), and then rho again.
+//
+// We only return base-nodes, so the current node after following rho.
+class RhoMuPhiPath {
+public:
+	RhoMuPhiPath(ECMA::Node &);
+
+	ECMA::Node &operator*() const;
+
+protected:
+	void advance();
+
+	ECMA::Node &get() const;
+
+private:
+	ECMA::Node *current;
+};
+
 namespace ECMA {
 
 class RootPath : public MuPhiPath {
@@ -79,6 +100,29 @@ private:
 
 static_assert(std::input_iterator<NodePath>);
 static_assert(std::sentinel_for<NodePath::Sentinel, NodePath>);
+
+class BasePath : public RhoMuPhiPath {
+public:
+	using difference_type = std::ptrdiff_t;
+	using value_type = Node;
+
+	class Sentinel{};
+
+	// from,to respectively.
+	BasePath(Node &);
+	bool operator==(const Sentinel &) const;
+
+	BasePath &operator++();
+	// dummy int :|
+	void operator++(int);
+
+private:
+	void inc();
+	bool one_past_node;
+};
+
+static_assert(std::input_iterator<BasePath>);
+static_assert(std::sentinel_for<BasePath::Sentinel, BasePath>);
 
 }
 

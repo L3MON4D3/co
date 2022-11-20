@@ -26,6 +26,24 @@ ECMA::Node &MuPhiPath::operator*() const {
 	return get();
 }
 
+// basically the same as MuPhiPath, but it's so little, abstracting it feels
+// wrong.
+RhoMuPhiPath::RhoMuPhiPath(ECMA::Node &n)
+	// initialize with base of blossom of n.
+	: current{n.rho} {}
+
+void RhoMuPhiPath::advance() {
+	current = current->mu->phi->rho;
+}
+
+ECMA::Node &RhoMuPhiPath::get() const {
+	return *current;
+}
+
+ECMA::Node &RhoMuPhiPath::operator*() const {
+	return get();
+}
+
 namespace ECMA {
 
 RootPath::RootPath(Node &n)
@@ -76,9 +94,8 @@ bool NodePath::operator==(const NodePath::Sentinel &) const {
 void NodePath::inc() {
 	// like in RootPath, we want to include the to-node in the path, so we
 	// have to do the same trick.
-	if (&get() == to) {
+	if (&get() == to)
 		one_past_node = true;
-	}
 
 	advance();
 }
@@ -89,6 +106,37 @@ NodePath &NodePath::operator++() {
 }
 
 void NodePath::operator++(int) {
+	inc();
+}
+
+// this is pretty much the same interface as RootPath, but this time on top of
+// RhoMuPhiPath.
+BasePath::BasePath(Node &from)
+	: RhoMuPhiPath(from),
+	  one_past_node{false} { }
+
+bool BasePath::operator==(const BasePath::Sentinel &) const {
+	// can't check end-condition here, since we have to advance onto the root
+	// once.
+	return one_past_node;
+}
+
+void BasePath::inc() {
+	// like in RootPath, we want to include the to-node in the path, so we
+	// have to do the same trick.
+	Node &current = get();
+	if (current.mu == &current && current.phi == &current)
+		one_past_node = true;
+
+	advance();
+}
+
+BasePath &BasePath::operator++() {
+	inc();
+	return *this;
+}
+
+void BasePath::operator++(int) {
 	inc();
 }
 

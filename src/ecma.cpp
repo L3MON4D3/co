@@ -215,11 +215,11 @@ std::pair<std::vector<Node>::iterator, std::vector<Node>::iterator> Graph::nodes
 bool same_root(Node &x, Node &y) {
 	// walk both to root and compare.
 	// TODO: use rho for jumping to root faster.
-	RootPath px = RootPath(x);
-	std::ranges::advance(px, RootPath::Sentinel());
+	BasePath px = BasePath(x);
+	std::ranges::advance(px, BasePath::Sentinel());
 
-	RootPath py = RootPath(y);
-	std::ranges::advance(py, RootPath::Sentinel());
+	BasePath py = BasePath(y);
+	std::ranges::advance(py, BasePath::Sentinel());
 
 	return *px == *py;
 }
@@ -240,17 +240,13 @@ void invert_path(RootPath p) {
 
 Node &first_common_base(Node &x, Node &y) {
 	std::vector<Node *> base_on_px;
-	for (RootPath px(x); px != RootPath::Sentinel(); ++px) {
-		Node &r = *px;
-		if (r.rho == &r)
-			base_on_px.push_back(&r);
+	for (BasePath px(x); px != BasePath::Sentinel(); ++px) {
+		base_on_px.push_back(&*px);
 	}
 
 	std::vector<Node *> base_on_py;
-	for (RootPath py(y); py != RootPath::Sentinel(); ++py) {
-		Node &r = *py;
-		if (r.rho == &r)
-			base_on_py.push_back(&r);
+	for (BasePath py(y); py != BasePath::Sentinel(); ++py) {
+		base_on_py.push_back(&*py);
 	}
 
 	// there is at least one common base, we want to find the first, so the one
