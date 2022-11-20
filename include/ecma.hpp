@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <set>
+#include <unordered_set>
 #include <fstream>
 
 #include "graph.hpp"
@@ -83,7 +84,8 @@ public:
 
 	// return references(pointers) to nodes, the vector may not be changed!!!
 	std::vector<Node *> get_nodes();
-	std::pair<std::vector<Node>::iterator, std::vector<Node>::iterator> nodes_iters();
+	std::unordered_set<Node *> get_node_set();
+	std::pair<std::vector<Node>::iterator, std::vector<Node>::iterator> nodes_begin_end();
 
 private:
 	// graph owns its vertices, edges are modelled inside nodes.

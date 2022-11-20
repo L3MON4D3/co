@@ -15,29 +15,6 @@
       "-fconcepts-diagnostics-depth=4",
       "-fsanitize=address",
       "-o",
-      "build/graph.o",
-      "src/graph.cpp"
-    ],
-    "directory": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1",
-    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/src/graph.cpp",
-    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/build/graph.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/g++",
-      "-std=c++20",
-      "-c",
-      "-O2",
-      "-pedantic",
-      "-Wall",
-      "-Wextra",
-      "-Werror",
-      "-I",
-      "include",
-      "-g",
-      "-fconcepts-diagnostics-depth=4",
-      "-fsanitize=address",
-      "-o",
       "build/main.o",
       "src/main.cpp"
     ],
@@ -61,12 +38,12 @@
       "-fconcepts-diagnostics-depth=4",
       "-fsanitize=address",
       "-o",
-      "build/ecma.o",
-      "src/ecma.cpp"
+      "build/path_iterators.o",
+      "src/path_iterators.cpp"
     ],
     "directory": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1",
-    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/src/ecma.cpp",
-    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/build/ecma.o"
+    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/src/path_iterators.cpp",
+    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/build/path_iterators.o"
   },
   {
     "arguments": [
@@ -84,12 +61,35 @@
       "-fconcepts-diagnostics-depth=4",
       "-fsanitize=address",
       "-o",
-      "build/path_iterators.o",
-      "src/path_iterators.cpp"
+      "build/graph.o",
+      "src/graph.cpp"
     ],
     "directory": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1",
-    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/src/path_iterators.cpp",
-    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/build/path_iterators.o"
+    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/src/graph.cpp",
+    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/build/graph.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-c",
+      "-O2",
+      "-pedantic",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I",
+      "include",
+      "-g",
+      "-fconcepts-diagnostics-depth=4",
+      "-fsanitize=address",
+      "-o",
+      "build/ecma.o",
+      "src/ecma.cpp"
+    ],
+    "directory": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1",
+    "file": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/src/ecma.cpp",
+    "output": "/home/simon/Documents/Uni/Kurse/s7/co/PE_1/build/ecma.o"
   },
   {
     "arguments": [

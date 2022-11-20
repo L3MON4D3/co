@@ -13,8 +13,6 @@
 #include <sstream>
 #include <filesystem>
 
-#include <unordered_set>
-
 namespace ECMA {
 
 Node::Node(ED::NodeId id)
@@ -200,6 +198,15 @@ std::vector<Node *> Graph::get_nodes() {
 	return ns;
 }
 
+std::unordered_set<Node *> Graph::get_node_set() {
+	// prepare+fill vector.
+	std::unordered_set<Node *> ns;
+	for (Node &n : nodes)
+		ns.insert(&n);
+
+	return ns;
+}
+
 std::pair<std::vector<Node>::iterator, std::vector<Node>::iterator> Graph::nodes_begin_end() {
 	return {nodes.begin(), nodes.end()};
 }
@@ -297,15 +304,22 @@ void ecma(const ED::Graph &g_ed) {
 	// construct ECMA-graph.
 	Graph g(g_ed);
 
-	auto [nodes_begin, nodes_end] = g.nodes_begin_end();
-	auto nodes_iter = nodes_begin;
+	// store nodes here too, we might have to access them quite often.
+	std::unordered_set<Node *> all_nodes = g.get_node_set();
 
-	while (nodes_iter != nodes_end) {
-		Node &x = *nodes_iter;
+	// the nodes we will actually work on.
+	std::unordered_set<Node *> effective_nodes = all_nodes;
 
+	// potential outer, unscanned nodes, will be covered in next iteration.
+	// (use set to avoid inserting a node twice)
+	std::unordered_set<Node *> next_nodes;
+
+	// jump back here if we haven't handled all nodes yet.
+	redo:
+	for (Node *_x : effective_nodes) {
+		Node &x = *_x;
 		// need outer vertex.
 		if (x.state() != NodeState::outer || x.scanned) {
-			++nodes_iter;
 			continue;
 		}
 
@@ -315,9 +329,12 @@ void ecma(const ED::Graph &g_ed) {
 			if (y_state == NodeState::oof) {
 				// grow
 				y.phi = &x;
-				// std::cout << "grow" << std::endl;
+
+				// check new outer node in next iteration.
+				next_nodes.insert(y.mu);
+
 				// g.capture("grow");
-				nodes_iter = nodes_begin;
+
 				continue;
 			} else if (y_state == NodeState::outer && y.rho != x.rho) {
 				if (!same_root(x, y)) {
@@ -328,18 +345,15 @@ void ecma(const ED::Graph &g_ed) {
 					y.mu = &x;
 
 					// improve this!!
-					nodes_iter = nodes_begin;
-
-					auto [reset_iter, reset_end] = g.nodes_begin_end();
-					for (; reset_iter != reset_end; ++reset_iter) {
-						Node &v = *reset_iter;
+					for (Node *_v : all_nodes) {
+						Node &v = *_v;
 						v.phi = &v;
 						v.rho = &v;
 						v.scanned = false;
 					}
-					// std::cout << "augment" << std::endl;
+					next_nodes = all_nodes;
+
 					// g.capture("augment");
-					// continue outer loop.
 					goto continue_vertex_scan;
 				} else {
 					Node &r = first_common_base(x, y);
@@ -362,22 +376,34 @@ void ecma(const ED::Graph &g_ed) {
 					auto [shrink_nodes_iter, shrink_nodes_end] = g.nodes_begin_end();
 					for (; shrink_nodes_iter != shrink_nodes_end; ++shrink_nodes_iter) {
 						Node &v = *shrink_nodes_iter;
-						if (xr_yr_nodes.contains(v.rho))
+						if (xr_yr_nodes.contains(v.rho)) {
 							v.rho = &r;
+
+							// all these nodes now belong to an outer blossom,
+							// whereas they might have been inner vertices,
+							// before.
+							// Look at them in the next iteration.
+							next_nodes.insert(&v);
+						}
 					}
 
-					// std::cout << "shrink" << std::endl;
 					// g.capture("shrink");
-					nodes_iter = nodes_begin;
 				}
 			}
 		}
 		// we can neither grow, shrink, or augment at x,
 		// continue with next unscanned vertex.
 		x.scanned = true;
-		++nodes_iter;
 
 		continue_vertex_scan:;
+	}
+
+	if (!next_nodes.empty()) {
+		// if there are still nodes to check, restart loop.
+		swap(effective_nodes, next_nodes);
+		// clear next nodes for next loop.
+		next_nodes.clear();
+		goto redo;
 	}
 
 	g.capture_forest();
