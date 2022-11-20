@@ -200,7 +200,7 @@ std::vector<Node *> Graph::get_nodes() {
 	return ns;
 }
 
-std::pair<std::vector<Node>::iterator, std::vector<Node>::iterator> Graph::nodes_iters() {
+std::pair<std::vector<Node>::iterator, std::vector<Node>::iterator> Graph::nodes_begin_end() {
 	return {nodes.begin(), nodes.end()};
 }
 
@@ -297,7 +297,7 @@ void ecma(const ED::Graph &g_ed) {
 	// construct ECMA-graph.
 	Graph g(g_ed);
 
-	auto [nodes_begin, nodes_end] = g.nodes_iters();
+	auto [nodes_begin, nodes_end] = g.nodes_begin_end();
 	auto nodes_iter = nodes_begin;
 
 	while (nodes_iter != nodes_end) {
@@ -330,7 +330,7 @@ void ecma(const ED::Graph &g_ed) {
 					// improve this!!
 					nodes_iter = nodes_begin;
 
-					auto [reset_iter, reset_end] = g.nodes_iters();
+					auto [reset_iter, reset_end] = g.nodes_begin_end();
 					for (; reset_iter != reset_end; ++reset_iter) {
 						Node &v = *reset_iter;
 						v.phi = &v;
@@ -355,7 +355,7 @@ void ecma(const ED::Graph &g_ed) {
 					for (NodePath pyr(y,r); pyr != NodePath::Sentinel(); ++pyr)
 						xr_yr_nodes.insert({&(*pyr), true});
 
-					auto [shrink_nodes_iter, shrink_nodes_end] = g.nodes_iters();
+					auto [shrink_nodes_iter, shrink_nodes_end] = g.nodes_begin_end();
 					for (; shrink_nodes_iter != shrink_nodes_end; ++shrink_nodes_iter) {
 						Node &v = *shrink_nodes_iter;
 						if (xr_yr_nodes.contains(v.rho))
