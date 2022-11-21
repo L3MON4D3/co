@@ -346,6 +346,7 @@ void ecma(const ED::Graph &g_ed) {
 	redo:
 	for (Node *_x : effective_nodes) {
 		Node &x = *_x;
+
 		// need outer vertex.
 		if (x.state() != NodeState::outer || x.scanned) {
 			continue;
@@ -372,12 +373,20 @@ void ecma(const ED::Graph &g_ed) {
 					std::unordered_set x_tree = tree(x_root);
 					std::unordered_set y_tree = tree(y_root);
 
-					// augment
+					// "switch" M along Paths
 					invert_path(RootPath(x));
 					invert_path(RootPath(y));
+
+					// add connecting edge to form M-augmenting path.
 					x.mu = &y;
 					y.mu = &x;
 
+					// with some rudimentary testing (running on
+					// china&greek graph),
+					// resetting all nodes performs a bit better on small
+					// graphs, while resetting only the forest+neighbors leads
+					// to much better performance for larger graphs (like china: 3min vs 50sec).
+					//
 					// reset(all_nodes);
 					// next_nodes = all_nodes;
 
@@ -387,6 +396,7 @@ void ecma(const ED::Graph &g_ed) {
 					next_nodes.merge(y_tree);
 
 					// also re-scan all neighbors of the trees.
+					// (they might have new outer neighbors!)
 					for (Node *v : x_tree)
 						for (Node *w: v->get_neighbors()) {
 							w->scanned = false;
@@ -399,6 +409,8 @@ void ecma(const ED::Graph &g_ed) {
 						}
 
 					// g.capture("augment");
+
+					// continue outer loop.
 					goto continue_vertex_scan;
 				} else {
 					Node &r = first_common_base(x, y);
@@ -450,8 +462,8 @@ void ecma(const ED::Graph &g_ed) {
 
 	if (!next_nodes.empty()) {
 		// if there are still nodes to check, restart loop.
+		// swap maps, clear next_nodes for next loop.
 		swap(effective_nodes, next_nodes);
-		// clear next nodes for next loop.
 		next_nodes.clear();
 		goto redo;
 	}
@@ -459,8 +471,6 @@ void ecma(const ED::Graph &g_ed) {
 	// assert there are no leftover outer, unscanned nodes.
 	for (Node *n : all_nodes)
 		assert((n->state()==NodeState::outer && n->scanned==true) || n->state() != NodeState::outer);
-
-	g.capture_forest();
 
 	// print graphviz to stdout.
 	// g.print_dot(std::cout, {Node::PrintType::edges, Node::PrintType::mu});
