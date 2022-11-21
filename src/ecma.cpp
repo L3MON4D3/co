@@ -411,24 +411,29 @@ void ecma(const ED::Graph &g_ed) {
 					// create hashmap of all nodes on [x,r] and [y,r] (to
 					// quickly query whether rho(v) is on them, and should now
 					// point to r)
+					// Only insert nodes whose rho points to themself.
 					std::unordered_set<Node *> xr_yr_nodes;
 					for (NodePath pxr(x,r); pxr != NodePath::Sentinel(); ++pxr)
-						// get iterator element, then get its address.
-						xr_yr_nodes.insert(&(*pxr));
+						// only append nodes that are bases or outer
+						// (keeps hashmap a bit smaller).
+						if ((*pxr).rho == &*pxr) {
+							// get node from iterator, then its address.
+							xr_yr_nodes.insert(&(*pxr));
+						}
 					for (NodePath pyr(y,r); pyr != NodePath::Sentinel(); ++pyr)
-						xr_yr_nodes.insert(&(*pyr));
+						if ((*pyr).rho == &*pyr) {
+							xr_yr_nodes.insert(&(*pyr));
+						}
 
-					auto [shrink_nodes_iter, shrink_nodes_end] = g.nodes_begin_end();
-					for (; shrink_nodes_iter != shrink_nodes_end; ++shrink_nodes_iter) {
-						Node &v = *shrink_nodes_iter;
-						if (xr_yr_nodes.contains(v.rho)) {
-							v.rho = &r;
+					for (Node *n : all_nodes) {
+						if (xr_yr_nodes.contains(n->rho)) {
+							n->rho = &r;
 
 							// all these nodes now belong to an outer blossom,
 							// whereas they might have been inner vertices,
 							// before.
 							// Look at them in the next iteration.
-							next_nodes.insert(&v);
+							next_nodes.insert(n);
 						}
 					}
 
