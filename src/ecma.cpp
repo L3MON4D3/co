@@ -8,6 +8,7 @@
 #include <iterator>
 #include <memory>
 #include <ranges>
+#include <stack>
 
 #include <cassert>
 #include <sstream>
@@ -212,16 +213,42 @@ std::pair<std::vector<Node>::iterator, std::vector<Node>::iterator> Graph::nodes
 }
 
 
-bool same_root(Node &x, Node &y) {
-	// walk both to root and compare.
-	// TODO: use rho for jumping to root faster.
+void reset(std::unordered_set<Node *> &set) {
+	for (Node *_v : set) {
+		Node &v = *_v;
+		v.phi = &v;
+		v.rho = &v;
+		v.scanned = false;
+	}
+}
+
+std::unordered_set<Node *> tree(Node &root) {
+	std::unordered_set<Node *> visited;
+	std::stack<Node *> to_visit;
+	to_visit.push(&root);
+
+	// we know that from every node in the tree, there is a mu-phi-path to the
+	// root. We can thus find the tree, by following only edges where mu/phi
+	// points towards the current node.
+	while (!to_visit.empty()) {
+		Node *v = to_visit.top();
+		to_visit.pop();
+
+		for (Node *w: v->get_neighbors())
+			if ((w->mu == v || w->phi == v) && !visited.contains(w)) {
+				visited.insert(w);
+				to_visit.push(w);
+			}
+	}
+
+	return visited;
+}
+
+Node &root(Node &x) {
 	BasePath px = BasePath(x);
 	std::ranges::advance(px, BasePath::Sentinel());
-
-	BasePath py = BasePath(y);
-	std::ranges::advance(py, BasePath::Sentinel());
-
-	return *px == *py;
+	
+	return *px;
 }
 
 void invert_path(RootPath p) {
@@ -338,21 +365,38 @@ void ecma(const ED::Graph &g_ed) {
 
 				continue;
 			} else if (y_state == NodeState::outer && y.rho != x.rho) {
-				if (!same_root(x, y)) {
+				Node &x_root = root(x);
+				Node &y_root = root(y);
+				if (x_root != y_root) {
+					// store trees for reset.
+					std::unordered_set x_tree = tree(x_root);
+					std::unordered_set y_tree = tree(y_root);
+
 					// augment
 					invert_path(RootPath(x));
 					invert_path(RootPath(y));
 					x.mu = &y;
 					y.mu = &x;
 
-					// improve this!!
-					for (Node *_v : all_nodes) {
-						Node &v = *_v;
-						v.phi = &v;
-						v.rho = &v;
-						v.scanned = false;
-					}
-					next_nodes = all_nodes;
+					// reset(all_nodes);
+					// next_nodes = all_nodes;
+
+					reset(x_tree);
+					reset(y_tree);
+					next_nodes.merge(x_tree);
+					next_nodes.merge(y_tree);
+
+					// also re-scan all neighbors of the trees.
+					for (Node *v : x_tree)
+						for (Node *w: v->get_neighbors()) {
+							w->scanned = false;
+							next_nodes.insert(w);
+						}
+					for (Node *v : y_tree)
+						for (Node *w: v->get_neighbors()) {
+							w->scanned = false;
+							next_nodes.insert(w);
+						}
 
 					// g.capture("augment");
 					goto continue_vertex_scan;
