@@ -1,3 +1,6 @@
+// defines classes for the edmonds cardinality matching algorithm, and it
+// itself.
+
 #ifndef ECMA_H
 #define ECMA_H
 
@@ -13,14 +16,16 @@
 
 namespace ECMA {
 
-// different states a node may be in (oof =^ out-of-forest).
-enum class NodeState {inner, outer, oof};
-
-using distance = uint32_t;
-
 // node as used in ECMA.
+// We use a node instead of tables mapping phi/mu/rho -> node since it seems a
+// bit nicer (don't need to pass these tables around all the time).
+// (alternative would of course be a class for ECMA-instances, but that does
+// also seem a bit unwieldly, a simple function is more attractive).
 class Node {
 public:
+	// different states a node may be in (oof =^ out-of-forest).
+	enum class State {inner, outer, oof};
+
 	// functions defined on every node, so they can just be members.
 	// we can use raw pointers here, since these nodes are created+destroyed
 	// together (these are not "owning" pointers).
@@ -38,25 +43,29 @@ public:
 	// constructor.
 	Node(ED::NodeId);
 
-	// I would like to delete this constructor, but then vector can't contain it
-	// (it might have to be resized, and the elements moved, hence requires the
-	// copy-constructor, but we will handle all vectors containing Nodes in a
-	// way that won't require moving them), so it'll just throw an exception to
-	// at least give some runtime-safety.
+	// I would like to delete this constructor, but then vector can't
+	// contain it (it might have to be resized, and the elements moved,
+	// hence requires the copy-constructor, but we will handle all vectors
+	// containing Nodes in a way that won't require moving them), so instead
+	// the implementation will just throw an exception to at least give some
+	// runtime-safety.
 	Node(Node &);
 	Node(Node &&);
 
 	// determine state of the node.
 	// An enum seems better than separate outer/inner/out-of-forest-methods,
 	// since it's immediately clear that enum-states are mutually exclusive.
-	NodeState state() const;
+	State state() const;
 
 	void set_neighbors(std::vector<Node *>);
 
 	// vector is not modifiable, but nodes are!
-	const std::vector<Node *> &get_neighbors() const;
+	const std::vector<Node *> &get_neighbors();
 
-	enum class PrintType {edges, edges_invis, mu, phi, rho, mu_nocon, phi_nocon, rho_nocon};
+	// for debugging-purposes: appends the node's edges in graphviz-format.
+	// PrintType determines what information is printed, and how (nocon <=> "no
+	// constraint", const)
+	enum class PrintType {edges, edges_invis, mu, phi, rho, mu_constraining, phi_constraining, rho_constraining};
 	void print_dot(std::ostream &, std::set<PrintType>) const;
 
 	// "neighbor-search-valid"
@@ -75,8 +84,9 @@ private:
 class Graph {
 public:
 	Graph(const ED::Graph &);
-	ED::Graph to_EDGraph();
+	ED::Graph matching_to_EDGraph();
 
+	// debugging/visualization-stuff
 	void print_dot(std::ostream &, std::set<Node::PrintType>);
 	void capture(std::string hint = "");
 	void capture_forest();
@@ -91,11 +101,13 @@ private:
 	// graph owns its vertices, edges are modelled inside nodes.
 	std::vector<Node> nodes;
 
-	// for captures.
+	// for captures/debugging-purposes.
 	size_t capture_id;
 };
 
-void ecma(const ED::Graph &g_ed);
+// performs the edmonds cardinality-matching algorithm, and returns a ED-Graph,
+// with only the matching edges.
+ED::Graph ecma(const ED::Graph &g_ed);
 
 }
 

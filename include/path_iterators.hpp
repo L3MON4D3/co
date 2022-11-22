@@ -1,8 +1,11 @@
+// defines some iterators for following the path to the root of some nodes.
+
 #ifndef PATH_ITERATORS_H
 #define PATH_ITERATORS_H
 
 #include "ecma.hpp"
 
+// path calling mu,phi, alternating.
 class MuPhiPath {
 public:
 	MuPhiPath(ECMA::Node &);
@@ -50,6 +53,9 @@ private:
 };
 
 namespace ECMA {
+
+// these interfaces would be nicer as templated classes using either MuPhi, or
+// RhoMuPhiPath, but that's too much hassle.
 
 class RootPath : public MuPhiPath {
 public:
@@ -101,6 +107,7 @@ private:
 static_assert(std::input_iterator<NodePath>);
 static_assert(std::sentinel_for<NodePath::Sentinel, NodePath>);
 
+// advance up to the base.
 class BasePath : public RhoMuPhiPath {
 public:
 	using difference_type = std::ptrdiff_t;

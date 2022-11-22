@@ -1,9 +1,9 @@
 CXX=g++ -std=c++20
-CXXFLAGS=-O2 -pedantic -Wall -Wextra -Werror -I include -g -fconcepts-diagnostics-depth=4
-CXXASAN=-fsanitize=address
+CXXFLAGS=-O2 -pedantic -Wall -Wextra -Werror -I include -fconcepts-diagnostics-depth=4 -DNDEBUG
+CXXASAN=#-fsanitize=address
 
-LDFLAGS=-g
-LDASAN=-fsanitize=address
+LDFLAGS=#-g
+LDASAN=#-fsanitize=address
 OBJECTS=build/graph.o build/main.o build/ecma.o build/path_iterators.o
 HEADERS=$(wildcard include/*.hpp)
 

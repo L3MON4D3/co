@@ -13,5 +13,7 @@ int main(int argc, char **argv) {
 	
 	std::fstream input_file_graph{argv[2]};
 	const ED::Graph g1 = ED::Graph::read_dimacs(input_file_graph);
-	ECMA::ecma(g1);
+
+	ED::Graph matching_graph = ECMA::ecma(g1);
+	std::cout << matching_graph;
 }

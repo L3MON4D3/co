@@ -21,6 +21,7 @@ Node::Node(ED::NodeId id)
 	: mu{this},
 	  phi{this},
 	  rho{this},
+	  // scanned as false.
 	  scanned{false},
 	  id{id},
 	  neighbors{} {}
@@ -32,20 +33,19 @@ Node::Node(Node &)
 	// reasoning in declaration.
 	throw;
 }
-
 Node::Node(Node &&)
 	: id{0} {
 	throw;
 }
 
-NodeState Node::state() const {
+Node::State Node::state() const {
 	if (mu == this || mu->phi != mu) {
-		return NodeState::outer;
+		return State::outer;
 	} else if (mu->phi == mu && phi != this) {
-		return NodeState::inner;
+		return State::inner;
 	} else {
 		assert(mu != this && phi == this && mu->phi == mu);
-		return NodeState::oof;
+		return State::oof;
 	}
 }
 
@@ -53,7 +53,9 @@ void Node::set_neighbors(std::vector<Node *> new_neighbors) {
 	neighbors = new_neighbors;
 }
 
-const std::vector<Node *> &Node::get_neighbors() const { return neighbors; }
+const std::vector<Node *> &Node::get_neighbors() {
+	return neighbors;
+}
 
 void Node::print_dot(std::ostream &s, std::set<PrintType> options) const {
 	if (options.contains(PrintType::edges) || options.contains(PrintType::edges_invis)) {
@@ -81,18 +83,19 @@ void Node::print_dot(std::ostream &s, std::set<PrintType> options) const {
 		s << "\t" << id << " -> " << phi->id << " [color = blue, constraint = false]" << std::endl;
 	if (options.contains(PrintType::rho))
 		s << "\t" << id << " -> " << rho->id << " [color = green, constraint = false]" << std::endl;
-	if (options.contains(PrintType::mu_nocon))
+	// this looks better when only the tree has to be visualized.
+	if (options.contains(PrintType::mu_constraining))
 		s << "\t" << id << " -> " << mu->id << " [color = red]" << std::endl;
-	if (options.contains(PrintType::phi_nocon))
+	if (options.contains(PrintType::phi_constraining))
 		s << "\t" << id << " -> " << phi->id << " [color = blue]" << std::endl;
-	if (options.contains(PrintType::rho_nocon))
+	if (options.contains(PrintType::rho_constraining))
 		s << "\t" << id << " -> " << rho->id << " [color = green]" << std::endl;
 }
 
 Node *Node::get_valid_neighbor() {
 	for (Node *n : neighbors) {
-		NodeState n_state = n->state();
-		if (n_state == NodeState::oof || (n_state == NodeState::outer && n->rho != rho))
+		Node::State n_state = n->state();
+		if (n_state == Node::State::oof || (n_state == Node::State::outer && n->rho != rho))
 			return n;
 	}
 
@@ -120,6 +123,8 @@ Graph::Graph(const ED::Graph &G)
 	for (unsigned int i = 0; i != G.num_nodes(); ++i)
 		// will never move vector!
 		// careful: use emplace_back to construct the Node in-place.
+		// (otherwise, the pointers will not point at the nodes location
+		// initially)
 		nodes.emplace_back(i);
 
 	// with all nodes present, we can construct the neighbor-lists
@@ -134,20 +139,23 @@ Graph::Graph(const ED::Graph &G)
 	}
 }
 
-ED::Graph Graph::to_EDGraph() {
+ED::Graph Graph::matching_to_EDGraph() {
 	// construct empty EDGraph.
 	ED::Graph G(nodes.size());
 
-	// insert edges.
 	for (auto &v : nodes)
-		for (auto &n : v.get_neighbors()) {
-			G.add_edge(v.id, n->id);
-		}
+		// insert edges in matching, prevent double-edges by only inserting from
+		// lower to higher node-id.
+		if (v.mu != &v && v.mu->id < v.id)
+			G.add_edge(v.id, v.mu->id);
 
 	return G;
 }
 
 void Graph::print_dot(std::ostream &s, std::set<Node::PrintType> p) {
+	// just graphviz-format, use digraph and visualize undirected edges with one
+	// directed edge (alternative graph and directed mu/phi/rho-edges undirected
+	// is worse)
 	s << "digraph {" << std::endl;
 
 	for (auto &node : nodes)
@@ -162,6 +170,8 @@ void Graph::debug() {
 	deb.flush();
 }
 
+// store in directory "captures", labelled by operation that led to this graph,
+// and monotonically increasing step-indx.
 void Graph::capture(std::string hint) {
 	// open file for this capture.
 	std::stringstream s;
@@ -183,8 +193,8 @@ void Graph::capture_forest() {
 
 	using P = Node::PrintType;
 	for (auto &node : nodes)
-		if (node.state() == NodeState::inner || node.state() == NodeState::outer)
-			node.print_dot(capture, {P::edges, P::mu_nocon, P::phi_nocon, P::rho_nocon});
+		if (node.state() == Node::State::inner || node.state() == Node::State::outer)
+			node.print_dot(capture, {P::edges, P::mu_constraining, P::phi_constraining, P::rho_constraining});
 
 	capture << "}" << std::endl;
 }
@@ -198,7 +208,6 @@ std::vector<Node *> Graph::get_nodes() {
 
 	return ns;
 }
-
 std::unordered_set<Node *> Graph::get_node_set() {
 	// prepare+fill vector.
 	std::unordered_set<Node *> ns;
@@ -207,12 +216,12 @@ std::unordered_set<Node *> Graph::get_node_set() {
 
 	return ns;
 }
-
 std::pair<std::vector<Node>::iterator, std::vector<Node>::iterator> Graph::nodes_begin_end() {
 	return {nodes.begin(), nodes.end()};
 }
 
 
+// make nodes out-of-forest, and unscanned.
 void reset(std::unordered_set<Node *> &set) {
 	for (Node *_v : set) {
 		Node &v = *_v;
@@ -222,7 +231,10 @@ void reset(std::unordered_set<Node *> &set) {
 	}
 }
 
+// finds the tree of `root`.
 std::unordered_set<Node *> tree(Node &root) {
+	// Breadth-first-search, can just return all visited nodes (we'll only
+	// visit those belonging to the tree)
 	std::unordered_set<Node *> visited;
 	std::stack<Node *> to_visit;
 	to_visit.push(&root);
@@ -244,19 +256,22 @@ std::unordered_set<Node *> tree(Node &root) {
 	return visited;
 }
 
+// find root of x's tree.
 Node &root(Node &x) {
 	BasePath px = BasePath(x);
+	// advance until the fixpoint of the path is reached.
 	std::ranges::advance(px, BasePath::Sentinel());
 	
 	return *px;
 }
 
+// invert matching along path.
 void invert_path(RootPath p) {
 	std::ranges::advance(p, 1);
 
 	while (p != RootPath::Sentinel()) {
 		// store current node, advance, and _then_ change phi,mu.
-		// (unchanged phi,mu are neede for advancing properly.)
+		// (unchanged phi,mu are needed for advancing properly.)
 		Node &current = *p;
 		std::ranges::advance(p, 2);
 		// phi matches, or phi is a root.
@@ -265,7 +280,9 @@ void invert_path(RootPath p) {
 	}
 }
 
+// finds first vertex on Px, Py where rho(v) = v.
 Node &first_common_base(Node &x, Node &y) {
+	// first collect bases on px/py in vectors, then compare them.
 	std::vector<Node *> base_on_px;
 	for (BasePath px(x); px != BasePath::Sentinel(); ++px) {
 		base_on_px.push_back(&*px);
@@ -277,7 +294,7 @@ Node &first_common_base(Node &x, Node &y) {
 	}
 
 	// there is at least one common base, we want to find the first, so the one
-	// before which the bases differ for px and py.
+	// before (from x/y's pov) which the bases differ for px and py.
 	// iterate from back, store first where 
 	auto i_by = base_on_py.rbegin();
 	auto i_bx = base_on_px.rbegin();
@@ -295,7 +312,9 @@ Node &first_common_base(Node &x, Node &y) {
 	return **(--i_by);
 }
 
-void shrink(Node &x, Node &y, Node &r) {
+void shrink(Node &x, Node &y, const std::unordered_set<Node *> &all_nodes, std::unordered_set<Node *> &next_nodes) {
+	Node &r = first_common_base(x, y);
+
 	// adjust ear-decomposition.
 	NodePath pxr(x, r);
 	// odd nodes only!
@@ -321,13 +340,78 @@ void shrink(Node &x, Node &y, Node &r) {
 		x.phi = &y;
 	if (y.rho != &r)
 		y.phi = &x;
+
+	// set rho for all nodes in the blossom.
+
+	// create hashmap of all nodes on [x,r] and [y,r] (to
+	// quickly query whether rho(v) is on them, and should now
+	// point to r)
+	// Only insert nodes whose rho points to themself.
+	std::unordered_set<Node *> xr_yr_nodes;
+	for (NodePath pxr(x,r); pxr != NodePath::Sentinel(); ++pxr)
+		// only append nodes that are bases or outer
+		// (keeps hashmap a bit smaller).
+		if ((*pxr).rho == &*pxr) {
+			// get node from iterator, then its address.
+			xr_yr_nodes.insert(&(*pxr));
+		}
+	for (NodePath pyr(y,r); pyr != NodePath::Sentinel(); ++pyr)
+		if ((*pyr).rho == &*pyr) {
+			xr_yr_nodes.insert(&(*pyr));
+		}
+
+	for (Node *n : all_nodes) {
+		if (xr_yr_nodes.contains(n->rho)) {
+			n->rho = &r;
+
+			// all these nodes now belong to an outer blossom,
+			// whereas they might have been inner vertices,
+			// before.
+			// Look at them in the next iteration.
+			next_nodes.insert(n);
+		}
+	}
 }
 
-void ecma(const ED::Graph &g_ed) {
+void augment(Node &x, Node &y, std::unordered_set<Node *> &next_nodes) {
+	Node &x_root = root(x);
+	Node &y_root = root(y);
+
+	// store trees for reset.
+	std::unordered_set<Node *> trees = tree(x_root);
+	trees.merge(tree(y_root));
+
+	// "switch" M along Paths
+	invert_path(RootPath(x));
+	invert_path(RootPath(y));
+
+	// add connecting edge to form M-augmenting path.
+	x.mu = &y;
+	y.mu = &x;
+
+	// with some rudimentary testing (running on
+	// china&greek graph),
+	// resetting all nodes performs a bit better on small
+	// graphs, while resetting only the forest+neighbors leads
+	// to much better performance for larger graphs (like china: 3min vs 50sec).
+
+	reset(trees);
+	// also re-scan all neighbors of the trees.
+	// (they might have new outer neighbors!)
+	for (Node *v : trees)
+		for (Node *w: v->get_neighbors()) {
+			w->scanned = false;
+			next_nodes.insert(w);
+		}
+
+	next_nodes.merge(trees);
+}
+
+ED::Graph ecma(const ED::Graph &g_ed) {
 	// construct ECMA-graph.
 	Graph g(g_ed);
 
-	// store nodes here too, we might have to access them quite often.
+	// store nodes here too, we will have to access them quite often.
 	std::unordered_set<Node *> all_nodes = g.get_node_set();
 
 	// the nodes we will actually work on.
@@ -342,21 +426,25 @@ void ecma(const ED::Graph &g_ed) {
 	// nodes, that became outer).
 	std::unordered_set<Node *> next_nodes;
 
-	// jump back here if we haven't handled all nodes yet.
+	// jump back here if we haven't handled all nodes yet (ie. next_nodes is not
+	// empty).
 	redo:
 	for (Node *_x : effective_nodes) {
 		Node &x = *_x;
 
 		// need outer vertex.
-		if (x.state() != NodeState::outer || x.scanned) {
+		if (x.state() != Node::State::outer || x.scanned) {
 			continue;
 		}
 
 		for (Node *_y : x.get_neighbors()) {
+			// just so we have a reference.
 			Node &y = *_y;
-			NodeState y_state = y.state();
-			if (y_state == NodeState::oof) {
+
+			Node::State y_state = y.state();
+			if (y_state == Node::State::oof) {
 				// grow
+				// didn't create a own function for this, seems okay as-is :D
 				y.phi = &x;
 
 				// check new outer node in next iteration.
@@ -365,95 +453,32 @@ void ecma(const ED::Graph &g_ed) {
 				// g.capture("grow");
 
 				continue;
-			} else if (y_state == NodeState::outer && y.rho != x.rho) {
-				Node &x_root = root(x);
-				Node &y_root = root(y);
-				if (x_root != y_root) {
-					// store trees for reset.
-					std::unordered_set x_tree = tree(x_root);
-					std::unordered_set y_tree = tree(y_root);
-
-					// "switch" M along Paths
-					invert_path(RootPath(x));
-					invert_path(RootPath(y));
-
-					// add connecting edge to form M-augmenting path.
-					x.mu = &y;
-					y.mu = &x;
-
-					// with some rudimentary testing (running on
-					// china&greek graph),
-					// resetting all nodes performs a bit better on small
-					// graphs, while resetting only the forest+neighbors leads
-					// to much better performance for larger graphs (like china: 3min vs 50sec).
-					//
-					// reset(all_nodes);
-					// next_nodes = all_nodes;
-
-					reset(x_tree);
-					reset(y_tree);
-					next_nodes.merge(x_tree);
-					next_nodes.merge(y_tree);
-
-					// also re-scan all neighbors of the trees.
-					// (they might have new outer neighbors!)
-					for (Node *v : x_tree)
-						for (Node *w: v->get_neighbors()) {
-							w->scanned = false;
-							next_nodes.insert(w);
-						}
-					for (Node *v : y_tree)
-						for (Node *w: v->get_neighbors()) {
-							w->scanned = false;
-							next_nodes.insert(w);
-						}
+			} else if (y_state == Node::State::outer && y.rho != x.rho) {
+				if (root(x) != root(y)) {
+					// augment.
+					augment(x,y, next_nodes);
 
 					// g.capture("augment");
 
 					// continue outer loop.
 					goto continue_vertex_scan;
 				} else {
-					Node &r = first_common_base(x, y);
-
-					// shrink
-					shrink(x,y,r);
-					
-					// set rho for all nodes in the blossom.
-
-					// create hashmap of all nodes on [x,r] and [y,r] (to
-					// quickly query whether rho(v) is on them, and should now
-					// point to r)
-					// Only insert nodes whose rho points to themself.
-					std::unordered_set<Node *> xr_yr_nodes;
-					for (NodePath pxr(x,r); pxr != NodePath::Sentinel(); ++pxr)
-						// only append nodes that are bases or outer
-						// (keeps hashmap a bit smaller).
-						if ((*pxr).rho == &*pxr) {
-							// get node from iterator, then its address.
-							xr_yr_nodes.insert(&(*pxr));
-						}
-					for (NodePath pyr(y,r); pyr != NodePath::Sentinel(); ++pyr)
-						if ((*pyr).rho == &*pyr) {
-							xr_yr_nodes.insert(&(*pyr));
-						}
-
-					for (Node *n : all_nodes) {
-						if (xr_yr_nodes.contains(n->rho)) {
-							n->rho = &r;
-
-							// all these nodes now belong to an outer blossom,
-							// whereas they might have been inner vertices,
-							// before.
-							// Look at them in the next iteration.
-							next_nodes.insert(n);
-						}
-					}
+					// shrink.
+					//
+					// needs all nodes to adjust rho quickly.
+					// It would be enough to limit this to just the nodes of
+					// the tree, but computing them here seems to cost more time
+					// than it saves.
+					// A cool extension would be to store the tree somewhere
+					// (the root) and recompute it on-demand (for example, if
+					// only shrink occurred).
+					shrink(x,y, all_nodes, next_nodes);
 
 					// g.capture("shrink");
 				}
 			}
 		}
-		// we can neither grow, shrink, or augment at x,
+		// we can neither grow, shrink, nor augment at x,
 		// continue with next unscanned vertex.
 		x.scanned = true;
 
@@ -469,20 +494,25 @@ void ecma(const ED::Graph &g_ed) {
 	}
 
 	// assert there are no leftover outer, unscanned nodes.
+	// wrap in ndebug to prevent unused-var-error.
+#ifndef NDEBUG
 	for (Node *n : all_nodes)
-		assert((n->state()==NodeState::outer && n->scanned==true) || n->state() != NodeState::outer);
+		assert((n->state()==Node::State::outer && n->scanned==true) || n->state() != Node::State::outer);
+#endif
 
 	// print graphviz to stdout.
 	// g.print_dot(std::cout, {Node::PrintType::edges, Node::PrintType::mu});
 
-	// find size of matching by subtracting #exposed vertices from #vertices and
-	// dividing by 2
-	size_t exposed_n = 0;
-	for (Node *n : g.get_nodes())
-		if (n->mu == n)
-			++exposed_n;
-	std::cout << (g.get_nodes().size()-exposed_n)/2 << std::endl;
-	std::cout << exposed_n << std::endl;
+	// // find size of matching by subtracting #exposed vertices from #vertices and
+	// // dividing by 2
+	// size_t exposed_n = 0;
+	// for (Node *n : g.get_nodes())
+	// 	if (n->mu == n)
+	// 		++exposed_n;
+	// std::cout << (g.get_nodes().size()-exposed_n)/2 << std::endl;
+	// std::cout << exposed_n << std::endl;
+
+	return g.matching_to_EDGraph();
 }
 
 }
