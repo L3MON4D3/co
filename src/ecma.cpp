@@ -450,7 +450,9 @@ ED::Graph ecma(const ED::Graph &g_ed) {
 				// check new outer node in next iteration.
 				next_nodes.insert(y.mu);
 
-				// g.capture("grow");
+#ifdef CAPTURE_STEPS
+				g.capture("grow");
+#endif
 
 				continue;
 			} else if (y_state == Node::State::outer && y.rho != x.rho) {
@@ -458,7 +460,9 @@ ED::Graph ecma(const ED::Graph &g_ed) {
 					// augment.
 					augment(x,y, next_nodes);
 
-					// g.capture("augment");
+#ifdef CAPTURE_STEPS
+					g.capture("augment");
+#endif
 
 					// continue outer loop.
 					goto continue_vertex_scan;
@@ -470,11 +474,13 @@ ED::Graph ecma(const ED::Graph &g_ed) {
 					// the tree, but computing them here seems to cost more time
 					// than it saves.
 					// A cool extension would be to store the tree somewhere
-					// (the root) and recompute it on-demand (for example, if
-					// only shrink occurred).
+					// (the root) and recompute it on-demand (preserve the
+					// tree if only shrink occurred, for example).
 					shrink(x,y, all_nodes, next_nodes);
 
-					// g.capture("shrink");
+#ifdef CAPTURE_STEPS
+					g.capture("shrink");
+#endif
 				}
 			}
 		}
@@ -493,11 +499,15 @@ ED::Graph ecma(const ED::Graph &g_ed) {
 		goto redo;
 	}
 
+#ifndef NDEBUG
 	// assert there are no leftover outer, unscanned nodes.
 	// wrap in ndebug to prevent unused-var-error.
-#ifndef NDEBUG
 	for (Node *n : all_nodes)
 		assert((n->state()==Node::State::outer && n->scanned==true) || n->state() != Node::State::outer);
+	
+	// assert we actually computed a matching.
+	for (Node *n : all_nodes)
+		assert(n->mu->mu == n);
 #endif
 
 	// print graphviz to stdout.
